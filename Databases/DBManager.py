@@ -25,20 +25,31 @@ class Database(object):
     def read(self, sentence, variables=(), fetchall=True, single_column=False):
         """Run a Read SQL Query
         :param sentence: SQL Query to execute (string, no need for final ';')
-        :param variables: tuple with values for the query (replace question marks in sentence) (default=empty)
-        :param fetchall: if True, return multiple values (default=False)
-        :param single_value: if True, only return a single column, only when fetchall=False (default=True)
+        :param variables: list/tuple with values for the query (replace question marks in sentence) (default=empty) It also can be a single value
+        :param fetchall: if False, return one single row (default=True)
+        :param single_value: if True, only return a single column
         :return: Data result with fetchone/fetchmany as tuple (except single_value=True)
         """
         try:
             cursor = self.db.cursor()
+            #Adecuate "variables" arg
+            if type(variables) not in (list, tuple):
+                variables = (variables,)
+            elif type(variables) is list:
+                variables = tuple(variables)
+            #Execute SQLite query
             result = cursor.execute(sentence, variables)
-            if fetchall:
+            #Return values depending on fetchall/single_column
+            if fetchall and not single_column: #fetchall rows, all columns
                 return result.fetchall()
-            elif single_column: #fetchone, single column
+            if not fetchall and single_column: #fetchone row, single column
                 return result.fetchone()[0]
-            else: #fetchone, all columns
+            if fetchall and single_column: #fetchall rows, single column per row
+                return tuple(row[0] for row in result)
+            if not fetchall:  #fetchone row, all columns
                 return result.fetchone()
+        except TypeError:
+            return None
         finally:
             cursor.close()
 
